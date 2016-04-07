@@ -39,56 +39,13 @@ namespace WebApp_OpenIDConnect_DotNet_B2C
 
         public void ConfigureAuth(IAppBuilder app)
         {
-            app.SetDefaultSignInAsAuthenticationType(CookieAuthenticationDefaults.AuthenticationType);
-
-            app.UseCookieAuthentication(new CookieAuthenticationOptions());
-
-            OpenIdConnectAuthenticationOptions options = new OpenIdConnectAuthenticationOptions
-            {
-                // These are standard OpenID Connect parameters, with values pulled from web.config
-                ClientId = clientId,
-                RedirectUri = redirectUri,
-                PostLogoutRedirectUri = redirectUri,
-                Notifications = new OpenIdConnectAuthenticationNotifications
-                { 
-                    AuthenticationFailed = AuthenticationFailed,
-                    RedirectToIdentityProvider = OnRedirectToIdentityProvider,
-                    SecurityTokenValidated = OnSecurityTokenValidated,
-                },
-                Scope = "openid",
-                ResponseType = "id_token",
-
-                // The PolicyConfigurationManager takes care of getting the correct Azure AD authentication
-                // endpoints from the OpenID Connect metadata endpoint.  It is included in the PolicyAuthHelpers folder.
-                ConfigurationManager = new PolicyConfigurationManager(
-                    String.Format(CultureInfo.InvariantCulture, aadInstance, tenant, "/v2.0", OIDCMetadataSuffix),
-                    new string[] { SusiPolicyId, PasswordResetPolicyId }),
-
-                // This piece is optional - it is used for displaying the user's name in the navigation bar.
-                TokenValidationParameters = new TokenValidationParameters
-                {  
-                    NameClaimType = "name",
-                },
-            };
-
-            app.UseOpenIdConnectAuthentication(options);
-                
+            // TODO: Set up the OpenID Connect middleware
         }
 
         // This notification can be used to manipulate the OIDC request before it is sent.  Here we use it to send the correct policy.
         private async Task OnRedirectToIdentityProvider(RedirectToIdentityProviderNotification<OpenIdConnectMessage, OpenIdConnectAuthenticationOptions> notification)
         {
-            PolicyConfigurationManager mgr = notification.Options.ConfigurationManager as PolicyConfigurationManager;
-            if (notification.ProtocolMessage.RequestType == OpenIdConnectRequestType.LogoutRequest)
-            {
-                OpenIdConnectConfiguration config = await mgr.GetConfigurationByPolicyAsync(CancellationToken.None, notification.OwinContext.Authentication.AuthenticationResponseRevoke.Properties.Dictionary[Startup.PolicyKey]);
-                notification.ProtocolMessage.IssuerAddress = config.EndSessionEndpoint;
-            }
-            else
-            {
-                OpenIdConnectConfiguration config = await mgr.GetConfigurationByPolicyAsync(CancellationToken.None, notification.OwinContext.Authentication.AuthenticationResponseChallenge.Properties.Dictionary[Startup.PolicyKey]);
-                notification.ProtocolMessage.IssuerAddress = config.AuthorizationEndpoint;
-            }
+            // TODO: Apply the correct policy to each outgoing request to AAD B2C
         }
 
         // Used for avoiding yellow-screen-of-death TODO
