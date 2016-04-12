@@ -96,7 +96,7 @@ namespace WebApp_OpenIDConnect_DotNet_B2C
         {
             notification.HandleResponse();
 
-            if (notification.ProtocolMessage.ErrorDescription != null && notification.ProtocolMessage.ErrorDescription.Contains("AADB2C90091"))
+            if (notification.ProtocolMessage.ErrorDescription != null && notification.ProtocolMessage.ErrorDescription.Contains("AADB2C90118"))
             {
                 notification.Response.Redirect("/Account/ResetPassword");
             }
