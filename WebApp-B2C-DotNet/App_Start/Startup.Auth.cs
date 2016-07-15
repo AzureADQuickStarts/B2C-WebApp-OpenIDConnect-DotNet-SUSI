@@ -31,37 +31,13 @@ namespace WebApp_OpenIDConnect_DotNet_B2C
 
         public void ConfigureAuth(IAppBuilder app)
         {
-            app.SetDefaultSignInAsAuthenticationType(CookieAuthenticationDefaults.AuthenticationType);
-
-            app.UseCookieAuthentication(new CookieAuthenticationOptions());
-
-            // Configure OpenID Connect middleware for each policy
-            app.UseOpenIdConnectAuthentication(CreateOptionsFromPolicy(PasswordResetPolicyId));
-            app.UseOpenIdConnectAuthentication(CreateOptionsFromPolicy(SusiPolicyId));
-
+            // TODO: Set up authentication for the app
         }
 
         // Used for avoiding yellow-screen-of-death TODO
         private Task AuthenticationFailed(AuthenticationFailedNotification<OpenIdConnectMessage, OpenIdConnectAuthenticationOptions> notification)
         {
-            notification.HandleResponse();
-
-            if (notification.ProtocolMessage.ErrorDescription != null && notification.ProtocolMessage.ErrorDescription.Contains("AADB2C90118"))
-            {
-                // If the user clicked the reset password link, redirect to the reset password route
-                notification.Response.Redirect("/Account/ResetPassword");
-            }
-            else if (notification.Exception.Message == "access_denied")
-            {
-                // If the user canceled the sign in, redirect back to the home page
-                notification.Response.Redirect("/");
-            }
-            else
-            {
-                notification.Response.Redirect("/Home/Error?message=" + notification.Exception.Message);
-            }
-
-            return Task.FromResult(0);
+            // TODO: Handle auth failures for the app, including the password reset error
         }
 
         private Task OnSecurityTokenValidated(SecurityTokenValidatedNotification<OpenIdConnectMessage, OpenIdConnectAuthenticationOptions> notification)
@@ -75,31 +51,7 @@ namespace WebApp_OpenIDConnect_DotNet_B2C
 
         private OpenIdConnectAuthenticationOptions CreateOptionsFromPolicy(string policy)
         {
-            return new OpenIdConnectAuthenticationOptions
-            {
-                // For each policy, give OWIN the policy-specific metadata address, and
-                // set the authentication type to the id of the policy
-                MetadataAddress = String.Format(aadInstance, tenant, policy),
-                AuthenticationType = policy,
-
-                // These are standard OpenID Connect parameters, with values pulled from web.config
-                ClientId = clientId,
-                RedirectUri = redirectUri,
-                PostLogoutRedirectUri = redirectUri,
-                Notifications = new OpenIdConnectAuthenticationNotifications
-                {
-                    AuthenticationFailed = AuthenticationFailed,
-                    SecurityTokenValidated = OnSecurityTokenValidated,
-                },
-                Scope = "openid",
-                ResponseType = "id_token",
-
-                // This piece is optional - it is used for displaying the user's name in the navigation bar.
-                TokenValidationParameters = new TokenValidationParameters
-                {
-                    NameClaimType = "name",
-                },
-            };
+            // TODO: Use this helper method to set up authentication for the app
         }
     }
 }
