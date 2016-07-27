@@ -14,19 +14,11 @@ using Microsoft.IdentityModel.Protocols;
 using System.Web.Mvc;
 using System.Configuration;
 using System.IdentityModel.Tokens;
-using WebApp_OpenIDConnect_DotNet_B2C.Policies;
-using System.Threading;
-using System.Globalization;
 
 namespace WebApp_OpenIDConnect_DotNet_B2C
 {
 	public partial class Startup
 	{
-        // The ACR claim is used to indicate which policy was executed
-        public const string AcrClaimType = "http://schemas.microsoft.com/claims/authnclassreference";
-        public const string PolicyKey = "b2cpolicy";
-        public const string OIDCMetadataSuffix = "/.well-known/openid-configuration";
-
         // App config settings
         private static string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
         private static string aadInstance = ConfigurationManager.AppSettings["ida:AadInstance"];
@@ -43,52 +35,10 @@ namespace WebApp_OpenIDConnect_DotNet_B2C
 
             app.UseCookieAuthentication(new CookieAuthenticationOptions());
 
-            OpenIdConnectAuthenticationOptions options = new OpenIdConnectAuthenticationOptions
-            {
-                // These are standard OpenID Connect parameters, with values pulled from web.config
-                ClientId = clientId,
-                RedirectUri = redirectUri,
-                PostLogoutRedirectUri = redirectUri,
-                Notifications = new OpenIdConnectAuthenticationNotifications
-                { 
-                    AuthenticationFailed = AuthenticationFailed,
-                    RedirectToIdentityProvider = OnRedirectToIdentityProvider,
-                    SecurityTokenValidated = OnSecurityTokenValidated,
-                },
-                Scope = "openid",
-                ResponseType = "id_token",
+            // Configure OpenID Connect middleware for each policy
+            app.UseOpenIdConnectAuthentication(CreateOptionsFromPolicy(PasswordResetPolicyId));
+            app.UseOpenIdConnectAuthentication(CreateOptionsFromPolicy(SusiPolicyId));
 
-                // The PolicyConfigurationManager takes care of getting the correct Azure AD authentication
-                // endpoints from the OpenID Connect metadata endpoint.  It is included in the PolicyAuthHelpers folder.
-                ConfigurationManager = new PolicyConfigurationManager(
-                    String.Format(CultureInfo.InvariantCulture, aadInstance, tenant, "/v2.0", OIDCMetadataSuffix),
-                    new string[] { SusiPolicyId, PasswordResetPolicyId }),
-
-                // This piece is optional - it is used for displaying the user's name in the navigation bar.
-                TokenValidationParameters = new TokenValidationParameters
-                {  
-                    NameClaimType = "name",
-                },
-            };
-
-            app.UseOpenIdConnectAuthentication(options);
-                
-        }
-
-        // This notification can be used to manipulate the OIDC request before it is sent.  Here we use it to send the correct policy.
-        private async Task OnRedirectToIdentityProvider(RedirectToIdentityProviderNotification<OpenIdConnectMessage, OpenIdConnectAuthenticationOptions> notification)
-        {
-            PolicyConfigurationManager mgr = notification.Options.ConfigurationManager as PolicyConfigurationManager;
-            if (notification.ProtocolMessage.RequestType == OpenIdConnectRequestType.LogoutRequest)
-            {
-                OpenIdConnectConfiguration config = await mgr.GetConfigurationByPolicyAsync(CancellationToken.None, notification.OwinContext.Authentication.AuthenticationResponseRevoke.Properties.Dictionary[Startup.PolicyKey]);
-                notification.ProtocolMessage.IssuerAddress = config.EndSessionEndpoint;
-            }
-            else
-            {
-                OpenIdConnectConfiguration config = await mgr.GetConfigurationByPolicyAsync(CancellationToken.None, notification.OwinContext.Authentication.AuthenticationResponseChallenge.Properties.Dictionary[Startup.PolicyKey]);
-                notification.ProtocolMessage.IssuerAddress = config.AuthorizationEndpoint;
-            }
         }
 
         // Used for avoiding yellow-screen-of-death TODO
@@ -98,7 +48,13 @@ namespace WebApp_OpenIDConnect_DotNet_B2C
 
             if (notification.ProtocolMessage.ErrorDescription != null && notification.ProtocolMessage.ErrorDescription.Contains("AADB2C90118"))
             {
+                // If the user clicked the reset password link, redirect to the reset password route
                 notification.Response.Redirect("/Account/ResetPassword");
+            }
+            else if (notification.Exception.Message == "access_denied")
+            {
+                // If the user canceled the sign in, redirect back to the home page
+                notification.Response.Redirect("/");
             }
             else
             {
@@ -115,6 +71,35 @@ namespace WebApp_OpenIDConnect_DotNet_B2C
             // exist.
 
             return Task.FromResult(0);
+        }
+
+        private OpenIdConnectAuthenticationOptions CreateOptionsFromPolicy(string policy)
+        {
+            return new OpenIdConnectAuthenticationOptions
+            {
+                // For each policy, give OWIN the policy-specific metadata address, and
+                // set the authentication type to the id of the policy
+                MetadataAddress = String.Format(aadInstance, tenant, policy),
+                AuthenticationType = policy,
+
+                // These are standard OpenID Connect parameters, with values pulled from web.config
+                ClientId = clientId,
+                RedirectUri = redirectUri,
+                PostLogoutRedirectUri = redirectUri,
+                Notifications = new OpenIdConnectAuthenticationNotifications
+                {
+                    AuthenticationFailed = AuthenticationFailed,
+                    SecurityTokenValidated = OnSecurityTokenValidated,
+                },
+                Scope = "openid",
+                ResponseType = "id_token",
+
+                // This piece is optional - it is used for displaying the user's name in the navigation bar.
+                TokenValidationParameters = new TokenValidationParameters
+                {
+                    NameClaimType = "name",
+                },
+            };
         }
     }
 }
