@@ -14,19 +14,11 @@ using Microsoft.IdentityModel.Protocols;
 using System.Web.Mvc;
 using System.Configuration;
 using System.IdentityModel.Tokens;
-using WebApp_OpenIDConnect_DotNet_B2C.Policies;
-using System.Threading;
-using System.Globalization;
 
 namespace WebApp_OpenIDConnect_DotNet_B2C
 {
 	public partial class Startup
 	{
-        // The ACR claim is used to indicate which policy was executed
-        public const string AcrClaimType = "http://schemas.microsoft.com/claims/authnclassreference";
-        public const string PolicyKey = "b2cpolicy";
-        public const string OIDCMetadataSuffix = "/.well-known/openid-configuration";
-
         // App config settings
         private static string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
         private static string aadInstance = ConfigurationManager.AppSettings["ida:AadInstance"];
@@ -39,30 +31,13 @@ namespace WebApp_OpenIDConnect_DotNet_B2C
 
         public void ConfigureAuth(IAppBuilder app)
         {
-            // TODO: Set up the OpenID Connect middleware
-        }
-
-        // This notification can be used to manipulate the OIDC request before it is sent.  Here we use it to send the correct policy.
-        private async Task OnRedirectToIdentityProvider(RedirectToIdentityProviderNotification<OpenIdConnectMessage, OpenIdConnectAuthenticationOptions> notification)
-        {
-            // TODO: Apply the correct policy to each outgoing request to AAD B2C
+            // TODO: Set up authentication for the app
         }
 
         // Used for avoiding yellow-screen-of-death TODO
         private Task AuthenticationFailed(AuthenticationFailedNotification<OpenIdConnectMessage, OpenIdConnectAuthenticationOptions> notification)
         {
-            notification.HandleResponse();
-
-            if (notification.ProtocolMessage.ErrorDescription != null && notification.ProtocolMessage.ErrorDescription.Contains("AADB2C90118"))
-            {
-                notification.Response.Redirect("/Account/ResetPassword");
-            }
-            else
-            {
-                notification.Response.Redirect("/Home/Error?message=" + notification.Exception.Message);
-            }
-
-            return Task.FromResult(0);
+            // TODO: Handle auth failures for the app, including the password reset error
         }
 
         private Task OnSecurityTokenValidated(SecurityTokenValidatedNotification<OpenIdConnectMessage, OpenIdConnectAuthenticationOptions> notification)
@@ -72,6 +47,11 @@ namespace WebApp_OpenIDConnect_DotNet_B2C
             // exist.
 
             return Task.FromResult(0);
+        }
+
+        private OpenIdConnectAuthenticationOptions CreateOptionsFromPolicy(string policy)
+        {
+            // TODO: Use this helper method to set up authentication for the app
         }
     }
 }

@@ -8,7 +8,6 @@ using System.Web.Mvc;
 using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.OpenIdConnect;
 using Microsoft.Owin.Security.Cookies;
-using WebApp_OpenIDConnect_DotNet_B2C.Policies;
 using System.Security.Claims;
 
 namespace WebApp_OpenIDConnect_DotNet_B2C.Controllers
@@ -17,20 +16,17 @@ namespace WebApp_OpenIDConnect_DotNet_B2C.Controllers
     {
         public void Login()
         {
-            if (!Request.IsAuthenticated)
-            {
-                //TODO: Trigger the sign up or sign in policy
-            }
+            // TODO: Execute the SUSI policy
         }
 
         public void ResetPassword()
         {
-            // TODO: Trigger the password reset policy
+            // TODO: Execute the password reset policy
         }
 
         public void Logout()
         {
-            // TODO: Sign the user our of the app
+            // TODO: Sign the user out of the app
         }
 	}
 }
